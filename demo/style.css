@@ -1,0 +1,36 @@
+* {
+    padding   : 0;
+    margin    : 0;
+    box-sizing: border-box;
+}
+
+.the-header {
+    text-align : center;
+    line-height: 80px;
+    box-shadow : 0 0 10px 0px #b1b1b18a;
+}
+
+.the-header a {
+    padding      : 5px 10px;
+    margin       : 0 20px;
+    color        : #000;
+    outline-style: none;
+    
+}
+
+.the-header a.is-active {
+    color           : #fff;
+    background-color: #38acfa;
+}
+
+.the-content {
+    text-align : center;
+    height     : calc(100vh - 160px);
+    line-height: 60px;
+    padding-top: 120px;
+}
+
+.the-footer {
+    line-height: 80px;
+    text-align : center;
+}
