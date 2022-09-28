@@ -36,6 +36,7 @@
                     cacheUnMount.push(unmount)
             }
 
+            // 执行当前页面加载钩子
             this.runMount()
         }
 
@@ -53,10 +54,7 @@
             this.getHeadAndReplace()
 
             // 处理 Script
-            this.getScriptAndInsert().then(_ => {
-                // 执行当前页面加载钩子
-                this.runMount()
-            })
+            this.getScriptAndInsert()
         }
 
         runMount() {
@@ -75,31 +73,27 @@
 
         //#region 处理 Script
         getScriptAndInsert = () => {
-            return new Promise((resolve, reject) => {
-                let nextHeadChildren = this.getNextScriptChildren();
-                if (nextHeadChildren.length) {
-                    let scripts = Array.from(document.scripts)
-                    let scriptCDN = []
-                    let scriptBlock = []
+            let nextHeadChildren = this.getNextScriptChildren();
+            if (nextHeadChildren.length) {
+                let scripts = Array.from(document.scripts)
+                let scriptCDN = []
+                let scriptBlock = []
 
-                    nextHeadChildren.forEach(item => {
-                        if (item.src)
-                            scripts.findIndex(s => s.src === item.src) < 0 && scriptCDN.push(item);
-                        else
-                            scriptBlock.push(item.innerText)
-                    })
+                nextHeadChildren.forEach(item => {
+                    if (item.src)
+                        scripts.findIndex(s => s.src === item.src) < 0 && scriptCDN.push(item);
+                    else
+                        scriptBlock.push(item.innerText)
+                })
 
-                    return Promise.all(scriptCDN.map(item => this.loadScript(item))).then(_ => {
-                        scriptBlock.forEach(code => {
-                            this.runScriptBlock(code)
-                        })
+                Promise.all(scriptCDN.map(item => this.loadScript(item))).then(_ => {
+                    scriptBlock.forEach(code => {
+                        this.runScriptBlock(code)
                     })
-                } else {
-                    resolve()
-                }
-            })
+                })
+            }
         }
-
+        
         loadScript(item) {
             return new Promise((resolve, reject) => {
                 const element = document.createElement('script');
