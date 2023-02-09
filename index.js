@@ -75,25 +75,24 @@
         getScriptAndInsert = () => {
             let nextHeadChildren = this.getNextScriptChildren();
             if (nextHeadChildren.length) {
-                let scripts = Array.from(document.scripts)
-                let scriptCDN = []
-                let scriptBlock = []
-
-                nextHeadChildren.forEach(item => {
-                    if (item.src)
-                        scripts.findIndex(s => s.src === item.src) < 0 && scriptCDN.push(item);
-                    else
-                        scriptBlock.push(item.innerText)
-                })
-
-                Promise.all(scriptCDN.map(item => this.loadScript(item))).then(_ => {
-                    scriptBlock.forEach(code => {
-                        this.runScriptBlock(code)
-                    })
-                })
+                const run = async (newScripts) => {
+                    let scripts = Array.from(document.scripts)
+                    for (let index = 0; index < newScripts.length; index++) {
+                        const script = newScripts[index];
+                        if (script.src) {
+                            // 如果已经加载 、并且不需要重新执行的 则跳过
+                            if (scripts.findIndex(s => s.src === script.src && !s.dataset.reset) < 0) {
+                                await this.loadScript(script);
+                            }
+                        } else {
+                            this.runScriptBlock(script)
+                        }
+                    }
+                }
+                run(nextHeadChildren)
             }
         }
-        
+
         loadScript(item) {
             return new Promise((resolve, reject) => {
                 const element = document.createElement('script');
@@ -102,9 +101,14 @@
                 }
                 element.textContent = item.textContent;
                 element.setAttribute('async', 'false');
-                element.onload = resolve
+                element.onload = () => {
+                    resolve()
+                    if (document.body.contains(element)) {
+                        document.body.removeChild(element);
+                    }
+                }
                 element.onerror = reject
-                this.insertScript(element)
+                document.body.appendChild(element)
             })
         }
 
@@ -121,15 +125,30 @@
             return children;
         }
 
-        runScriptBlock(code) {
-            try {
-                const func = new Function(code);
-                func()
-            } catch (error) {
-                try {
-                    window.eval(code)
-                } catch (error) {
+        runScriptBlock(el) {
+            const code = el.text || el.textContent || el.innerHTML || "";
+            const parent = document.head || document.querySelector("head") || document.documentElement;
+            const script = document.createElement('script')
+
+            if (code.match("document.write")) {
+                if (console && console.log) {
+                    console.log("Script contains document.write. Can’t be executed correctly. Code skipped ");
                 }
+                return false;
+            }
+
+            try {
+                script.appendChild(document.createTextNode(code));
+            } catch (e) {
+                // old IEs have funky script nodes
+                script.text = code;
+            }
+
+            // 执行代码块
+            parent.appendChild(script);
+            // 移除执行后的代码块，避免污染标签
+            if (parent.contains(script)) {
+                parent.removeChild(script);
             }
         }
 
